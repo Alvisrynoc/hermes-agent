@@ -3235,6 +3235,7 @@ export interface SessionActiveItem {
   title: string
   profile?: string | null
   pending_inputs?: SessionPendingInput[]
+  active_subagent_count?: number
 }
 export type LiveSessionStatus = 'idle' | 'starting' | 'waiting' | 'working' | 'streaming' | 'resuming'
 /** Read-only identity of an unanswered request, without its sensitive params. */

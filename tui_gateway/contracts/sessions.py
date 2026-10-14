@@ -291,6 +291,7 @@ class SessionActiveItem(Result):
     title: str
     profile: str | None = None
     pending_inputs: list[SessionPendingInput] = Field(default_factory=list)
+    active_subagent_count: int = 0
 
 
 class SessionActiveListResult(Result):

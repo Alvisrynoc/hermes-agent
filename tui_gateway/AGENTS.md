@@ -93,6 +93,8 @@ profile's does not, and that `os.environ` is unchanged afterwards.
 the owning profile; `pending_inputs` carries only request `id` and `method`, never the
 prompt, command or secret params. Observing does not attach a transport or grant request
 response authority. Full input cards still arrive through an explicit session attach.
+`active_subagent_count` reports only the conversation's visible live roster, under its
+own profile scope; it does not imply that the parent has stopped working.
 
 `subagent.list({session_id})` returns `{subagents, delegations}` for the calling
 transport's live session. The roster is read-only and follows the CONVERSATION: exact-owner

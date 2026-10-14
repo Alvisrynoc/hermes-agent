@@ -29055,6 +29055,11 @@
             },
             "title": "Pending Inputs",
             "type": "array"
+          },
+          "active_subagent_count": {
+            "default": 0,
+            "title": "Active Subagent Count",
+            "type": "integer"
           }
         },
         "required": [

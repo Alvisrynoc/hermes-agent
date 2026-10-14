@@ -54,3 +54,20 @@ def test_observer_gets_profile_and_open_input_identity_without_sensitive_body(
         assert server._session_live_item("desktop", owner)["pending_inputs"] == []
     finally:
         settle("cancelled")
+
+def test_observer_counts_only_conversation_subagents_and_keeps_controls_owned(runtime, monkeypatch):
+    from tools import delegate_tool_registry as registry
+
+    owner, transport = runtime
+    child = SimpleNamespace()
+    records = {
+        "owned": {"subagent_id": "owned", "agent": child, "owner_session_id": "desktop",
+                  "owner_session_record": owner, "owner_transport": transport, "status": "running"},
+        "foreign": {"subagent_id": "foreign", "owner_session_id": "other", "status": "running"},
+    }
+    monkeypatch.setattr(registry, "_active_subagents", records)
+    assert server._session_live_item("desktop", owner)["active_subagent_count"] == 1
+    assert "error" in server.dispatch({"id": 2, "method": "subagent.list", "params": {"session_id": "desktop"}},
+                                      transport=SimpleNamespace(write=lambda frame: True))
+    records.pop("owned")
+    assert server._session_live_item("desktop", owner)["active_subagent_count"] == 0
