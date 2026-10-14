@@ -29036,6 +29036,25 @@
           "title": {
             "title": "Title",
             "type": "string"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Profile"
+          },
+          "pending_inputs": {
+            "items": {
+              "$ref": "#/components/schemas/SessionPendingInput"
+            },
+            "title": "Pending Inputs",
+            "type": "array"
           }
         },
         "required": [
@@ -31660,6 +31679,26 @@
           "session_id"
         ],
         "title": "SessionParams",
+        "type": "object"
+      },
+      "SessionPendingInput": {
+        "additionalProperties": false,
+        "description": "Read-only identity of an unanswered request, without its sensitive params.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "method"
+        ],
+        "title": "SessionPendingInput",
         "type": "object"
       },
       "SessionReclaimedPayload": {

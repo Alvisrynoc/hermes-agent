@@ -89,6 +89,11 @@ profile's does not, and that `os.environ` is unchanged afterwards.
 
 ## Shared subagent snapshots
 
+`session.active_list` is a read-only observer snapshot. Its optional `profile` identifies
+the owning profile; `pending_inputs` carries only request `id` and `method`, never the
+prompt, command or secret params. Observing does not attach a transport or grant request
+response authority. Full input cards still arrive through an explicit session attach.
+
 `subagent.list({session_id})` returns `{subagents, delegations}` for the calling
 transport's live session. The roster is read-only and follows the CONVERSATION: exact-owner
 records plus children whose durable lineage (`owner_agent_session_id` → compression tip, the

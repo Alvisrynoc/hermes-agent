@@ -3233,8 +3233,15 @@ export interface SessionActiveItem {
   started_at: number
   status: LiveSessionStatus
   title: string
+  profile?: string | null
+  pending_inputs?: SessionPendingInput[]
 }
 export type LiveSessionStatus = 'idle' | 'starting' | 'waiting' | 'working' | 'streaming' | 'resuming'
+/** Read-only identity of an unanswered request, without its sensitive params. */
+export interface SessionPendingInput {
+  id: string
+  method: string
+}
 /** ``session_id`` is the STORED id. */
 export interface SessionDeleteParams {
   session_id: string

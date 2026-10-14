@@ -17789,7 +17789,7 @@ def test_session_active_list_reports_live_sessions(monkeypatch):
         "session_key": "key-a",
         "started_at": 10.0,
         "status": "idle",
-        "title": "Research",
+        "title": "Research", "profile": "default", "pending_inputs": [],
     }
     assert rows["sid-b"]["current"] is True
     assert rows["sid-b"]["status"] == "working"

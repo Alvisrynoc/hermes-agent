@@ -353,6 +353,13 @@ def open_requests(sid: str) -> list[dict]:
     return [req.snapshot() for req in reqs]
 
 
+def pending_inputs(sid: str) -> list[dict[str, str]]:
+    """Read-only input identities for observers; never include prompt or command bodies."""
+    with _lock:
+        reqs = sorted((req for req in _open.values() if req.sid == sid), key=lambda r: r.created_at)
+        return [{"id": req.id, "method": req.method} for req in reqs]
+
+
 def open_request_count() -> int:
     """Unanswered server→client requests across every session: the process is waiting on a
     human (clarify, approval, sudo, secret, ...) and must not be treated as idle."""

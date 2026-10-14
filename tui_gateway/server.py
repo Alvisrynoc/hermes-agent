@@ -3036,53 +3036,6 @@ def _schedule_resume_hydration(sid: str, stored_id: str, db, *, close_db: bool =
     threading.Thread(target=_run, daemon=True).start()
 
 
-def _session_pending_kind(sid: str) -> str:
-    """Method of the server→client request *sid* is blocked on ("" when none)."""
-    from tui_gateway import server_requests
-    return server_requests.pending_kind(sid)
-
-
-def _session_live_status(sid: str, session: dict) -> str:
-    if _session_pending_kind(sid):
-        return "waiting"
-    ready = session.get("agent_ready")
-    # Unset + build never started = a lazy watch session idling, not one stuck mid-construction.
-    if ready is not None and not ready.is_set() and session.get("agent_build_started"):
-        return "starting"
-    return "working" if session.get("running") else "idle"
-
-
-def _session_live_title(session: dict, key: str) -> str:
-    title = str(session.get("pending_title") or "").strip()
-    with contextlib.suppress(Exception), _session_db(session) as db:
-        title = str(db.get_session_title(key) or title or "").strip() if db is not None else title
-    return title
-
-
-def _session_live_item(sid: str, session: dict, current_sid: str = "") -> dict:
-    key = _session_lookup_key(session, fallback=sid)
-    agent = session.get("agent")
-    history = list(session.get("history") or [])
-    status = _session_live_status(sid, session)
-    inflight = _inflight_snapshot(session)
-    queued = _queued_prompt_snapshot(session)
-    preview = next((" ".join(text.split())[:160] for msg in reversed(history)
-                    if (text := _content_display_text(msg.get("content", msg.get("text", ""))).strip())), "")
-    if queued:
-        preview = " ".join(str(queued.get("user") or preview).split())[:160]
-    elif inflight:
-        preview = " ".join(str(inflight.get("assistant") or inflight.get("user") or preview).split())[:160]
-    now = time.time()
-    return {
-        "current": sid == current_sid, "id": sid,
-        "last_active": float(session.get("last_active") or session.get("created_at") or now),
-        "message_count": len(history),
-        "model": str(getattr(agent, "model", "") or _resolve_model()), "preview": preview,
-        "session_key": key, "started_at": float(session.get("created_at") or now), "status": status,
-        "title": _session_live_title(session, key),
-    }
-
-
 def _session_lookup_key(session: dict, *, fallback: str = "") -> str:
     return str(getattr(session.get("agent"), "session_id", None) or session.get("session_key") or fallback or "")
 
@@ -3663,7 +3616,7 @@ from . import (
     session_compression as _session_compression, model_switch as _model_switch,
     compute_host_bridge as _compute_host_bridge, session_workdir as _session_workdir,
     session_lifecycle as _session_lifecycle, session_reaper as _session_reaper,
-    session_transports as _session_transports,
+    session_transports as _session_transports, session_activity as _session_activity,
     methods_browser_control as _methods_browser_control, methods_bot_relay as _methods_bot_relay,
     methods_complete as _methods_complete, methods_config as _methods_config,
     methods_config_set as _methods_config_set, methods_images as _methods_images,
@@ -3678,7 +3631,7 @@ from . import (
     methods_shared_metrics as _methods_shared_metrics, methods_start_chat as _methods_start_chat)
 
 for _m in (
-    _session_transports, _session_reaper, _session_lifecycle, _session_workdir, _compute_host_bridge, _model_switch,
+    _session_activity, _session_transports, _session_reaper, _session_lifecycle, _session_workdir, _compute_host_bridge, _model_switch,
     _session_compression, _change_watcher, _tool_progress, _session_notifications,
     _prompt_attachments, _session_history, _agent_callbacks, _session_auto_continue, _plugin_inject, _rpc_dispatch,
     _methods_complete_helpers, _methods_slash, _methods_voice, _methods_browser,
