@@ -1,7 +1,6 @@
 """Session lifecycle contracts (``tui_gateway/methods_session.py``): create / resume / activate /
 close, the live-session snapshot those share, history + compression + undo, mid-turn corrections,
 listing/browsing stored rows, spawn-tree snapshots, event replay and the stateless one-shot LLM call.
-``session.start_chat`` lives in ``tui_gateway/methods_start_chat.py``.
 """
 
 from __future__ import annotations
@@ -270,7 +269,7 @@ class SessionActiveListParams(ProfileParams):
 
 
 class SessionPendingInput(Result):
-    """Read-only identity of an unanswered request, without its sensitive params."""
+    """Read-only input identity; authority-backed rows use the native prompt id."""
 
     id: str
     method: str
@@ -286,12 +285,13 @@ class SessionActiveItem(Result):
     model: str
     preview: str
     session_key: str
+    source: str | None = None
     started_at: float
     status: LiveSessionStatus
     title: str
     profile: str | None = None
     pending_inputs: list[SessionPendingInput] = Field(default_factory=list)
-    active_subagent_count: int = 0
+    active_subagent_count: int | None = 0  # None: native managed-worker roster is unavailable.
 
 
 class SessionActiveListResult(Result):
@@ -516,6 +516,7 @@ class SessionUsageParams(SessionParams):
 
 class SessionUsageResult(Usage):
     credits_lines: list[str] | None = None
+    credits_usage_window: bool | None = None
 
 
 method("session.usage", params=SessionUsageParams, result=SessionUsageResult,
@@ -732,6 +733,10 @@ method("terminal.resize", params=TerminalResizeParams, result=TerminalResizeResu
 
 class SessionEventsSinceParams(SessionParams):
     last_seen: int | None = None
+    # Accepted and ignored. Legacy seqs are per process, and the client compares the answer's
+    # ``epoch`` with the process epoch from ``gateway.ready``. Clients that still send that
+    # process epoch here must replay; any other unknown key stays refused.
+    replay_epoch: str | None = None
 
 
 class SessionEventsSinceResult(Result):
@@ -789,42 +794,3 @@ class LlmOneshotResult(Result):
 method("llm.oneshot", params=LlmOneshotParams, result=LlmOneshotResult,
        doc="Stateless one-shot LLM completion (titles, ideas) on the session's or the task backend.")
 
-
-# ── start_chat ────────────────────────────────────────────────────────────────────────────────
-
-
-class StartChatArgs(Params):
-    """The ``start_chat`` tool's arguments (``tools/start_chat_tool.py``)."""
-
-    message: str
-    title: str | None = None
-    profile: str | None = None
-
-
-class SessionStartChatParams(SessionParams):
-    """``tool_call_id`` names the rejected call; its saved tool row records a started retry (display-only)."""
-
-    tool_call_id: str
-    args: StartChatArgs
-
-
-class StartChatStatus(WireEnum):
-    started = "started"
-    rejected = "rejected"
-
-
-class SessionStartChatResult(Result):
-    """``tui_gateway/start_chat.py``: ``started`` carries the new chat, ``rejected`` a reason and whether the same
-    arguments may succeed on another try (``retryable``). A call already retried returns that retry's result."""
-
-    status: StartChatStatus
-    session_id: str | None = None
-    profile: str | None = None
-    title: str | None = None
-    message: str | None = None
-    reason: str | None = None
-    retryable: bool | None = None
-
-
-method("session.start_chat", params=SessionStartChatParams, result=SessionStartChatResult,
-       doc="Run a start_chat request again from the session that made it (the handoff card's Retry).")
