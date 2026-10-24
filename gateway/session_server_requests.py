@@ -12,6 +12,7 @@ viewer's response frame.
 from __future__ import annotations
 
 import contextlib
+from copy import deepcopy
 import threading
 import uuid
 
@@ -22,12 +23,13 @@ _POLL_S = 0.25
 
 
 class _Pending:
-    __slots__ = ("event", "events", "locked", "method", "qids", "result", "session_id", "value")
+    __slots__ = ("event", "events", "locked", "method", "params", "qids", "result", "session_id", "value")
 
-    def __init__(self, session_id, qids=None, events=None, method=None):
+    def __init__(self, session_id, qids=None, events=None, method=None, params=None):
         self.event = threading.Event()
         self.session_id = session_id
         self.method = method
+        self.params = deepcopy(params or {})
         # The live session's own event stream the request went out on: one per authority (profile) and
         # session mount, so a viewer of another profile's same-named session can never settle it.
         self.events = events
@@ -116,6 +118,28 @@ def waiting(events, session_id, method) -> bool:
         return any(p.session_id == session_id and p.events is events and p.method == method for p in _open.values())
 
 
+def pending_inputs(events, session_id):
+    """Observer-safe identities from this exact native session stream, without request bodies."""
+    with _lock:
+        return [{'id': rid, 'method': pending.method} for rid, pending in _open.items()
+                if pending.session_id == session_id and pending.events is events and not pending.event.is_set()]
+
+
+def open_requests(authority, actor, session_id):
+    """Replay only requests this attached actor may answer, with their original ids and batch locks."""
+    with _lock:
+        rows = []
+        for rid, pending in _open.items():
+            if (pending.session_id != session_id or pending.event.is_set()
+                    or not may_settle(authority, actor, session_id, pending.events)):
+                continue
+            params = deepcopy(pending.params)
+            if pending.qids is not None:
+                params['answers'] = deepcopy(pending.locked)
+            rows.append({'id': rid, 'method': pending.method, 'params': params})
+        return rows
+
+
 def withdraw(events, session_id, method) -> int:
     """Settle every open *method* request on this live session's stream with no answer, the way a
     viewer that answered would: the asker reads None and every renderer gets ``request.cancel
@@ -154,11 +178,11 @@ def _ask(events, session_id, method, params, *, cancelled, timeout, qids=None):
     if not events.fanout.transports():
         return None
     request_id = f"srq-{uuid.uuid4().hex[:12]}"
-    pending = _Pending(session_id, qids, events, method)
+    pending = _Pending(session_id, qids, events, method, {'session_id': session_id, **params})
     with _lock:
         _open[request_id] = pending
     events.fanout.write({"jsonrpc": "2.0", "id": request_id, "method": method,
-                         "params": {"session_id": session_id, **params}})
+                         "params": deepcopy(pending.params)})
     waited = 0.0
     reason = "timeout"
     while not pending.event.wait(_POLL_S):

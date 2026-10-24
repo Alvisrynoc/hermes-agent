@@ -9046,6 +9046,21 @@
           "count": {
             "title": "Count",
             "type": "integer"
+          },
+          "open_requests": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OpenRequestEntry"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Open Requests"
           }
         },
         "required": [
@@ -10723,6 +10738,21 @@
             },
             "title": "Prompts",
             "type": "array"
+          },
+          "open_requests": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OpenRequestEntry"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Open Requests"
           },
           "info": {
             "$ref": "#/components/schemas/CanonicalSnapshotInfo"
@@ -35162,6 +35192,37 @@
           "title": {
             "title": "Title",
             "type": "string"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Profile"
+          },
+          "pending_inputs": {
+            "items": {
+              "$ref": "#/components/schemas/SessionPendingInput"
+            },
+            "title": "Pending Inputs",
+            "type": "array"
+          },
+          "active_subagent_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 0,
+            "title": "Active Subagent Count"
           }
         },
         "required": [
@@ -38122,6 +38183,26 @@
           "session_id"
         ],
         "title": "SessionParams",
+        "type": "object"
+      },
+      "SessionPendingInput": {
+        "additionalProperties": false,
+        "description": "Read-only input identity; authority-backed rows use the native prompt id.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "method"
+        ],
+        "title": "SessionPendingInput",
         "type": "object"
       },
       "SessionPruneParams": {

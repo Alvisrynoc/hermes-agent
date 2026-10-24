@@ -376,6 +376,13 @@ def open_request_count() -> int:
         return len(_open)
 
 
+def pending_inputs(sid: str) -> list[dict[str, str]]:
+    """Read-only request identities for observers; never expose prompt or command bodies."""
+    with _lock:
+        requests = sorted((req for req in _open.values() if req.sid == sid), key=lambda req: req.created_at)
+        return [{'id': req.id, 'method': req.method} for req in requests]
+
+
 def pending_kind(sid: str) -> str:
     """Method of the oldest open request for *sid* ("" when none) — the session is waiting on a human."""
     with _lock:

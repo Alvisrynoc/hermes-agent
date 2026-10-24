@@ -3333,8 +3333,16 @@ export interface SessionActiveItem {
   started_at: number
   status: LiveSessionStatus
   title: string
+  profile?: string | null
+  pending_inputs?: SessionPendingInput[]
+  active_subagent_count?: number | null
 }
 export type LiveSessionStatus = 'idle' | 'starting' | 'waiting' | 'working' | 'streaming' | 'resuming'
+/** Read-only input identity; authority-backed rows use the native prompt id. */
+export interface SessionPendingInput {
+  id: string
+  method: string
+}
 /** ``session_id`` is the STORED id. */
 export interface SessionDeleteParams {
   session_id: string
@@ -5013,6 +5021,7 @@ export interface CanonicalSnapshot {
   execution_generation: number
   pending: CanonicalPendingAdmission[]
   prompts: CanonicalPendingPrompt[]
+  open_requests?: OpenRequestEntry[] | null
   info: CanonicalSnapshotInfo
   pending_connection?: ConnectionRequestPayload | null
   todo_state?: TodoState | null
@@ -5167,6 +5176,7 @@ export interface CanonicalEventsResult {
   truncated: boolean
   snapshot_required: boolean
   count: number
+  open_requests?: OpenRequestEntry[] | null
 }
 export interface CanonicalReplayEvent {
   type: string

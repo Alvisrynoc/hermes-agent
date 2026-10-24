@@ -675,6 +675,10 @@ def _session_live_item(sid: str, session: dict, current_sid: str = "") -> dict:
         preview = " ".join(str(queued.get("user") or preview).split())[:160]
     elif inflight:
         preview = " ".join(str(inflight.get("assistant") or inflight.get("user") or preview).split())[:160]
+    from tui_gateway import server_requests
+
+    with _session_home_scope(session):
+        subagent_count = len(_visible_subagent_records(sid, session.get("transport"), session))
     now = time.time()
     return {
         "current": sid == current_sid, "id": sid,
@@ -683,6 +687,9 @@ def _session_live_item(sid: str, session: dict, current_sid: str = "") -> dict:
         "model": str(getattr(agent, "model", "") or _resolve_model()), "preview": preview,
         "session_key": key, "started_at": float(session.get("created_at") or now), "status": status,
         "title": _session_live_title(session, key),
+        "profile": profile_name_for_home(session.get("profile_home") or get_process_hermes_home()),
+        "pending_inputs": server_requests.pending_inputs(sid),
+        "active_subagent_count": subagent_count,
     }
 
 

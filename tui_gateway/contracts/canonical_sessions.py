@@ -9,7 +9,7 @@ from pydantic import RootModel
 from .base import JsonValue, Params, Result
 from .common import ProfileParams, TranscriptMessage
 from .connectors_operation import ConnectionRequestPayload
-from .sessions import TodoState
+from .sessions import OpenRequestEntry, TodoState
 from .canonical import AdmissionStatus, CanonicalSessionRef, PromptResponseResult, SessionInventoryFields
 from .registry import canonical_method
 
@@ -150,6 +150,7 @@ class CanonicalSnapshot(Result):
     execution_generation: int
     pending: list[CanonicalPendingAdmission]
     prompts: list[CanonicalPendingPrompt]
+    open_requests: list[OpenRequestEntry] | None = None
     info: CanonicalSnapshotInfo
     # The open ``manage_connections`` card, so a resume restores it while the tool waits.
     pending_connection: ConnectionRequestPayload | None = None
@@ -314,6 +315,7 @@ class CanonicalEventsResult(Result):
     truncated: bool
     snapshot_required: bool
     count: int
+    open_requests: list[OpenRequestEntry] | None = None
 
 
 for _name, _params, _result in (

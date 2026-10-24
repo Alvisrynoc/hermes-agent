@@ -73,5 +73,70 @@ async def test_a_row_names_its_source(owner):
 async def test_a_turn_blocked_on_a_prompt_reads_waiting(owner, monkeypatch):
     await owner.submit('hi')
     controls = owner.authority.sessions['chat'].controls
-    monkeypatch.setattr(controls, 'snapshot', lambda session_id, generation: ({'kind': 'approval'},))
+    monkeypatch.setattr(controls, 'snapshot', lambda session_id, generation: ({'kind': 'approval', 'prompt_id': 'approve'},))
     assert (await owner.active())['chat']['status'] == 'waiting'
+
+
+@pytest.mark.asyncio
+async def test_observer_projects_native_prompt_ids_without_sensitive_bodies(owner):
+    import json
+    from gateway.session_authorities import served_profile_name
+
+    await owner.submit('hi')
+    live = owner.authority.sessions['chat']
+    # Remote native prompts remain active until their registered responder settles them.
+    from gateway.session_contract import SessionRef
+    generation = owner.authority._handle(SessionRef('live', 'chat')).execution_generation
+    for kind in ('approval', 'clarify'):
+        prompt_id = f'native-{kind}'
+        live.controls.pending[prompt_id] = (None, {
+            'kind': kind, 'prompt_id': prompt_id, 'execution_generation': generation,
+            'command': 'sensitive command', 'question': 'private question',
+        })
+        live.controls.remote_responders[prompt_id] = lambda response: None
+    row = (await owner.active())['chat']
+    assert row['profile'] == served_profile_name(owner.authority.profile_id)
+    assert row['pending_inputs'] == [{'id': 'native-approval', 'method': 'approval'},
+                                     {'id': 'native-clarify', 'method': 'clarify'}]
+    assert 'sensitive command' not in json.dumps(row)
+    assert 'private question' not in json.dumps(row)
+    live.controls.pending.clear()
+    live.controls.remote_responders.clear()
+    assert (await owner.active())['chat']['pending_inputs'] == []
+
+
+@pytest.mark.asyncio
+async def test_observer_counts_only_its_conversation_children(owner, monkeypatch):
+    from tools import delegate_tool_registry as registry
+
+    child = SimpleNamespace(_session_db=owner.authority.db)
+    monkeypatch.setattr(registry, '_active_subagents', {
+        'own': {'agent': child, 'owner_agent_session_id': 'chat'},
+        'foreign': {'agent': child, 'owner_agent_session_id': 'other'},
+    })
+    monkeypatch.setattr(owner.authority.runner, '_cached_agent_for', lambda route: None, raising=False)
+    assert (await owner.active())['chat']['active_subagent_count'] == 1
+    registry._active_subagents.clear()
+    assert (await owner.active())['chat']['active_subagent_count'] == 0
+
+
+@pytest.mark.asyncio
+async def test_managed_worker_observer_count_is_unknown(owner, monkeypatch):
+    from gateway import session_managed_worker
+
+    monkeypatch.setattr(session_managed_worker, 'managed_policy', lambda authority, ref: object())
+    assert (await owner.active())['chat']['active_subagent_count'] is None
+
+
+@pytest.mark.asyncio
+async def test_a_session_retired_during_roster_read_leaves_the_snapshot(owner, monkeypatch):
+    from gateway import session_active_list
+
+    original = session_active_list._subagent_counts
+
+    def retire_before_count(authority, entries):
+        authority.sessions.pop('chat')
+        return original(authority, entries)
+
+    monkeypatch.setattr(session_active_list, '_subagent_counts', retire_before_count)
+    assert await owner.active() == {}

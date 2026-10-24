@@ -268,6 +268,13 @@ class SessionActiveListParams(ProfileParams):
     current_session_id: str | None = None
 
 
+class SessionPendingInput(Result):
+    """Read-only input identity; authority-backed rows use the native prompt id."""
+
+    id: str
+    method: str
+
+
 class SessionActiveItem(Result):
     """``server._session_live_item``."""
 
@@ -282,6 +289,9 @@ class SessionActiveItem(Result):
     started_at: float
     status: LiveSessionStatus
     title: str
+    profile: str | None = None
+    pending_inputs: list[SessionPendingInput] = Field(default_factory=list)
+    active_subagent_count: int | None = 0  # None: native managed-worker roster is unavailable.
 
 
 class SessionActiveListResult(Result):

@@ -17488,7 +17488,7 @@ def test_session_active_list_reports_live_sessions(monkeypatch):
         "message_count": 1,
         "model": "model-a",
         "preview": "find docs",
-        "session_key": "key-a",
+        "session_key": "key-a", "profile": "default", "pending_inputs": [], "active_subagent_count": 0,
         "started_at": 10.0,
         "status": "idle",
         "title": "Research",
