@@ -630,12 +630,13 @@ class AuthorityConnection:
         # Its home module, not tui_gateway.server: importing the stdio sidecar points sys.stdout at stderr.
         from tui_gateway.tool_progress import _todo_state_from_history
         history, display = list(snapshot.history), {}
-        if params.get('display_projection'):
+        omit_messages = params.get('omit_messages', False)
+        if params.get('display_projection') and not omit_messages:
             # A micro-compaction merge stays in ``messages`` (an undo target); its originals are what shows.
             display['display_messages'] = display_projection(
                 [row for row in history if not model_only(row)], self.authority.profile_id)
         return {'session_id': ref.session_id, 'stored_session_id': ref.session_id,
-                'messages': history, **display, 'message_count': len(history),
+                'messages': [] if omit_messages else history, **display, 'message_count': len(history),
                 'running': snapshot.handle.execution_state == 'running',
                 'authority_epoch': snapshot.handle.authority_epoch,
                 'replay_epoch': snapshot.replay_epoch, 'last_sequence': snapshot.last_sequence,
